@@ -4,7 +4,9 @@ from geopy.distance import geodesic
 
 df = pd.read_csv("../data/chicago_taxi_trips.csv")
 
-df = df.sort_values(["taxi_id", "timestamp"])
+df = df.sort_values(["taxi_id", "trip_start_timestamp"])
+
+df = df.dropna(subset=['pickup_centroid_latitude', 'pickup_centroid_longitude'])
 
 battery_capacity = 60  # kWh
 consumption_rate = 0.20  # kWh/km
@@ -16,16 +18,16 @@ def simulate_ev_data(group):
     for i in range(1, len(group)):
         prev = group.iloc[i-1]
         curr = group.iloc[i]
-        dist_km = geodesic((prev['lat'], prev['lon']), (curr['lat'], curr['lon'])).km
+        dist_km = geodesic((prev['pickup_centroid_latitude'], prev['pickup_centroid_longitude']), (curr['pickup_centroid_latitude'], curr['pickup_centroid_longitude'])).km
         energy_used = dist_km * consumption_rate
         soc -= energy_used / battery_capacity
         if soc <= 0.2:
             charge_time_hr = (1 - soc) * battery_capacity / 11.0
             charge_events.append({
                 "vehicle_id": prev["taxi_id"],
-                "start_time": curr["timestamp"],
-                "lat": curr["lat"],
-                "lon": curr["lon"],
+                "start_time": curr["trip_start_timestamp"],
+                "lat": curr["pickup_centroid_latitude"],
+                "lon": curr["pickup_centroid_longitude"],
                 "charge_time_hr": charge_time_hr
             })
             soc = 1.0
